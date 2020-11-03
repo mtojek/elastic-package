@@ -159,8 +159,9 @@ func (p *Project) Up(opts CommandOptions) error {
 // Down tears down a Docker Compose project.
 func (p *Project) Down(opts CommandOptions) error {
 	args := p.baseArgs()
-	args = append(args, "down")
+	args = append(args, []string{"rm", "-f", "-s", "-v"}...)
 	args = append(args, opts.ExtraArgs...)
+	args = append(args, opts.Services...)
 
 	if err := p.runDockerComposeCmd(dockerComposeOptions{args: args, env: opts.Env}); err != nil {
 		return errors.Wrap(err, "running Docker Compose down command failed")

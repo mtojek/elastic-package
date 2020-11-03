@@ -11,3 +11,9 @@ type Options struct {
 
 	Services []string
 }
+
+// WithServices add given services to the options.
+func (opt Options) WithServices(services []string) Options {
+	opt.Services = services
+	return opt
+}

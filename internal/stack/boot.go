@@ -48,23 +48,50 @@ func BootUp(options Options) error {
 		return errors.Wrap(err, "building docker images failed")
 	}
 
-	if len(options.Services) == 0 { // stop Docker containers
-		err = dockerComposeDown()
+	toBeStopped := determineServicesToBeStopped(options.Services)
+	if len(toBeStopped) > 0 {
+		err = dockerComposeDown(Options{
+			Services: toBeStopped,
+		})
 		if err != nil {
 			return errors.Wrap(err, "stopping docker containers failed")
 		}
 	}
 
-	err = dockerComposeUp(options)
+	err = dockerComposeUp(options.WithServices(options.Services))
 	if err != nil {
 		return errors.Wrap(err, "running docker-compose failed")
 	}
 	return nil
 }
 
+func determineServicesToBeStopped(toBeStarted []string) []string {
+	toBeStopped := map[string]bool{
+		"elasticsearch":    true,
+		"kibana":           true,
+		"package-registry": true,
+		"elastic-agent":    true,
+	}
+
+	for _, service := range toBeStarted {
+		if _, ok := toBeStopped[service]; ok {
+			toBeStopped[service] = false
+		}
+	}
+
+	var t []string
+	for service, isUp := range toBeStopped {
+		if !isUp {
+			continue
+		}
+		t = append(t, service)
+	}
+	return t
+}
+
 // TearDown method takes down the testing stack.
-func TearDown() error {
-	err := dockerComposeDown()
+func TearDown(options Options) error {
+	err := dockerComposeDown(options)
 	if err != nil {
 		return errors.Wrap(err, "stopping docker containers failed")
 	}

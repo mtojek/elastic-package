@@ -29,7 +29,7 @@ func dockerComposeBuild(options Options) error {
 
 	opts := compose.CommandOptions{
 		Env:      []string{fmt.Sprintf("STACK_VERSION=%s", options.StackVersion)},
-		Services: withIsReadyServices(withDependentServices(options.Services)),
+		Services: withIsReadyServices(options.Services),
 	}
 
 	if err := c.Build(opts); err != nil {
@@ -51,7 +51,7 @@ func dockerComposePull(options Options) error {
 
 	opts := compose.CommandOptions{
 		Env:      []string{fmt.Sprintf("STACK_VERSION=%s", options.StackVersion)},
-		Services: withIsReadyServices(withDependentServices(options.Services)),
+		Services: withIsReadyServices(options.Services),
 	}
 
 	if err := c.Pull(opts); err != nil {
@@ -79,7 +79,7 @@ func dockerComposeUp(options Options) error {
 	opts := compose.CommandOptions{
 		Env:       []string{fmt.Sprintf("STACK_VERSION=%s", options.StackVersion)},
 		ExtraArgs: args,
-		Services:  withIsReadyServices(withDependentServices(options.Services)),
+		Services:  withIsReadyServices(options.Services),
 	}
 
 	if err := c.Up(opts); err != nil {
@@ -88,7 +88,7 @@ func dockerComposeUp(options Options) error {
 	return nil
 }
 
-func dockerComposeDown() error {
+func dockerComposeDown(options Options) error {
 	stackDir, err := install.StackDir()
 	if err != nil {
 		return errors.Wrap(err, "locating stack directory failed")
@@ -102,22 +102,14 @@ func dockerComposeDown() error {
 	opts := compose.CommandOptions{
 		// We set the STACK_VERSION env var here to avoid showing a warning to the user about
 		// it not being set.
-		Env: []string{fmt.Sprintf("STACK_VERSION=%s", DefaultVersion)},
+		Env:      []string{fmt.Sprintf("STACK_VERSION=%s", DefaultVersion)},
+		Services: options.Services,
 	}
 
 	if err := c.Down(opts); err != nil {
 		return errors.Wrap(err, "running command failed")
 	}
 	return nil
-}
-
-func withDependentServices(services []string) []string {
-	for _, aService := range services {
-		if aService == "elastic-agent" {
-			return []string{} // elastic-agent service requires to load all other services
-		}
-	}
-	return services
 }
 
 func withIsReadyServices(services []string) []string {

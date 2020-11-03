@@ -19,6 +19,7 @@ var availableServices = map[string]struct{}{
 	"elasticsearch":    {},
 	"kibana":           {},
 	"package-registry": {},
+	"elastic-agent":    {},
 }
 
 func setupStackCommand() *cobra.Command {
@@ -72,7 +73,14 @@ func setupStackCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.Println("Take down the Elastic stack")
 
-			err := stack.TearDown()
+			services, err := cmd.Flags().GetStringSlice(cobraext.StackServicesFlagName)
+			if err != nil {
+				return cobraext.FlagParsingError(err, cobraext.StackServicesFlagName)
+			}
+
+			err = stack.TearDown(stack.Options{
+				Services: services,
+			})
 			if err != nil {
 				return errors.Wrap(err, "tearing down the stack failed")
 			}
@@ -81,6 +89,8 @@ func setupStackCommand() *cobra.Command {
 			return nil
 		},
 	}
+	downCommand.Flags().StringSliceP(cobraext.StackServicesFlagName, "s", nil,
+		fmt.Sprintf(cobraext.StackServicesFlagDescription, strings.Join(availableServicesAsList(), ", ")))
 
 	updateCommand := &cobra.Command{
 		Use:   "update",
